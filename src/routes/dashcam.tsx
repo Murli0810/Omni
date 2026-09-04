@@ -73,6 +73,9 @@ const MAX_BYTES = 200 * 1024 * 1024;
 const ACCEPTED = [".mp4", ".webm", ".mov"];
 const BUS_ID = "FLEET-BUS-04";
 
+const TAB =
+  "border border-transparent text-zinc-400 data-[state=active]:border-emerald-400/40 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-400 data-[state=active]:shadow-none";
+
 function DashcamPage() {
   const [mode, setMode] = useState<"live" | "upload">("live");
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -261,10 +264,10 @@ function DashcamPage() {
           <Panel className="p-3 sm:p-4">
             <Tabs value={mode} onValueChange={(v) => setMode(v as "live" | "upload")}>
               <TabsList className="w-full bg-zinc-950/70 backdrop-blur-xl">
-                <TabsTrigger value="live" className="flex-1 gap-2 text-xs">
+                <TabsTrigger value="live" className={cn("flex-1 gap-2 text-xs", TAB)}>
                   <Radio className="size-3.5" /> Live Phone Camera Feed
                 </TabsTrigger>
-                <TabsTrigger value="upload" className="flex-1 gap-2 text-xs">
+                <TabsTrigger value="upload" className={cn("flex-1 gap-2 text-xs", TAB)}>
                   <Upload className="size-3.5" /> Upload Dashcam Footage
                 </TabsTrigger>
               </TabsList>
@@ -305,7 +308,7 @@ function DashcamPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-1"
+                    className="mt-1 border-zinc-700 bg-zinc-950/60 text-zinc-200 hover:bg-zinc-900 hover:text-zinc-50"
                     onClick={() => fileInputRef.current?.click()}
                   >
                     Browse files
@@ -575,7 +578,11 @@ function DashcamPage() {
                 <Button className="w-full gap-2" onClick={dispatch}>
                   <Send className="size-4" /> Send Alert to Command &amp; SMS
                 </Button>
-                <Button asChild variant="outline" className="w-full gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full gap-2 border-zinc-700 bg-zinc-950/60 text-zinc-200 hover:bg-zinc-900 hover:text-zinc-50"
+                >
                   <a href={smsHref}>
                     <MessageSquare className="size-4" /> Direct Mobile SMS Deep-Link
                   </a>
