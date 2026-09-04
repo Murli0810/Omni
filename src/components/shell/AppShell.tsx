@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl transition-[width] duration-300",
+          "sticky top-0 z-30 hidden h-screen shrink-0 flex-col lg:flex border-r border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl transition-[width] duration-300",
           collapsed ? "w-[68px]" : "w-[228px]",
         )}
       >
@@ -142,7 +142,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-800/80 bg-zinc-900/60 px-4 backdrop-blur-xl">
-          <div className="flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1">
+          <nav className="flex items-center gap-1 lg:hidden">
+            {NAV.map((item) => {
+              const active =
+                item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  title={item.label}
+                  aria-label={item.label}
+                  className={cn(
+                    "grid size-8 place-items-center rounded-md border",
+                    active
+                      ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                      : "border-zinc-800 text-zinc-400",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="hidden items-center gap-2 rounded-md border border-emerald-400/30 sm:flex bg-emerald-400/10 px-2.5 py-1">
             <span className="size-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]" />
             <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400">
               edge ai fleet online — 42 buses active
@@ -150,9 +174,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <LiveClock />
+            <div className="hidden md:block">
+              <LiveClock />
+            </div>
             <Select value={zone} onValueChange={setZone}>
-              <SelectTrigger className="h-8 w-[190px] border-zinc-800 bg-zinc-900/70 font-mono text-[11px] text-zinc-200">
+              <SelectTrigger className="hidden h-8 w-[190px] border-zinc-800 sm:flex bg-zinc-900/70 font-mono text-[11px] text-zinc-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-zinc-800 bg-zinc-900/95 backdrop-blur-xl">
