@@ -94,6 +94,13 @@ function DashcamPage() {
   const [instant, setInstant] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastDispatchRef = useRef<string | null>(null);
+  const [clock, setClock] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setClock(new Date());
+    const t = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // GPS telemetry
   useEffect(() => {
@@ -198,10 +205,10 @@ function DashcamPage() {
       `Vehicle/Plate: ${plate}`,
       `Location: ${formatCoord(lat, lng)}`,
       `Maps Link: https://maps.google.com/?q=${lat.toFixed(4)},${lng.toFixed(4)}`,
-      `Timestamp: ${istStamp(selected ? new Date(selected.at) : new Date())}`,
+      `Timestamp: ${selected ? istStamp(new Date(selected.at)) : clock ? istStamp(clock) : "awaiting gps clock sync"}`,
       `Bus ID: ${BUS_ID}`,
     ].join("\n");
-  }, [selected, geo.lat, geo.lng]);
+  }, [selected, geo.lat, geo.lng, clock]);
 
   const dispatch = useCallback(() => {
     toast.success("Alert Transmitted to Central Command & Target Phone", {
