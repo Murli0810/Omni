@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as DashcamRouteImport } from './routes/dashcam'
 import { Route as InfrastructureRouteImport } from './routes/infrastructure'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as IncidentsIndexRouteImport } from './routes/incidents.index'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashcamRoute = DashcamRouteImport.update({
+  id: '/dashcam',
+  path: '/dashcam',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InfrastructureRoute = InfrastructureRouteImport.update({
@@ -50,6 +56,7 @@ const IncidentsIdRoute = IncidentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/dashcam': typeof DashcamRoute
   '/infrastructure': typeof InfrastructureRoute
   '/map': typeof MapRoute
   '/incidents/$id': typeof IncidentsIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/dashcam': typeof DashcamRoute
   '/infrastructure': typeof InfrastructureRoute
   '/map': typeof MapRoute
   '/incidents/$id': typeof IncidentsIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/dashcam': typeof DashcamRoute
   '/infrastructure': typeof InfrastructureRoute
   '/map': typeof MapRoute
   '/incidents/$id': typeof IncidentsIdRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
+    | '/dashcam'
     | '/infrastructure'
     | '/map'
     | '/incidents/$id'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
+    | '/dashcam'
     | '/infrastructure'
     | '/map'
     | '/incidents/$id'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analytics'
+    | '/dashcam'
     | '/infrastructure'
     | '/map'
     | '/incidents/$id'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  DashcamRoute: typeof DashcamRoute
   InfrastructureRoute: typeof InfrastructureRoute
   MapRoute: typeof MapRoute
   IncidentsIdRoute: typeof IncidentsIdRoute
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashcam': {
+      id: '/dashcam'
+      path: '/dashcam'
+      fullPath: '/dashcam'
+      preLoaderRoute: typeof DashcamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/infrastructure': {
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
+  DashcamRoute: DashcamRoute,
   InfrastructureRoute: InfrastructureRoute,
   MapRoute: MapRoute,
   IncidentsIdRoute: IncidentsIdRoute,
