@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as InfrastructureRouteImport } from './routes/infrastructure'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as IncidentsIndexRouteImport } from './routes/incidents.index'
+import { Route as IncidentsIdRouteImport } from './routes/incidents.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InfrastructureRoute = InfrastructureRouteImport.update({
+  id: '/infrastructure',
+  path: '/infrastructure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IncidentsIndexRoute = IncidentsIndexRouteImport.update({
+  id: '/incidents/',
+  path: '/incidents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IncidentsIdRoute = IncidentsIdRouteImport.update({
+  id: '/incidents/$id',
+  path: '/incidents/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/infrastructure': typeof InfrastructureRoute
+  '/map': typeof MapRoute
+  '/incidents/$id': typeof IncidentsIdRoute
+  '/incidents/': typeof IncidentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/infrastructure': typeof InfrastructureRoute
+  '/map': typeof MapRoute
+  '/incidents/$id': typeof IncidentsIdRoute
+  '/incidents': typeof IncidentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/infrastructure': typeof InfrastructureRoute
+  '/map': typeof MapRoute
+  '/incidents/$id': typeof IncidentsIdRoute
+  '/incidents/': typeof IncidentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/infrastructure'
+    | '/map'
+    | '/incidents/$id'
+    | '/incidents/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analytics'
+    | '/infrastructure'
+    | '/map'
+    | '/incidents/$id'
+    | '/incidents'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/infrastructure'
+    | '/map'
+    | '/incidents/$id'
+    | '/incidents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  InfrastructureRoute: typeof InfrastructureRoute
+  MapRoute: typeof MapRoute
+  IncidentsIdRoute: typeof IncidentsIdRoute
+  IncidentsIndexRoute: typeof IncidentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/infrastructure': {
+      id: '/infrastructure'
+      path: '/infrastructure'
+      fullPath: '/infrastructure'
+      preLoaderRoute: typeof InfrastructureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/incidents/': {
+      id: '/incidents/'
+      path: '/incidents'
+      fullPath: '/incidents/'
+      preLoaderRoute: typeof IncidentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/incidents/$id': {
+      id: '/incidents/$id'
+      path: '/incidents/$id'
+      fullPath: '/incidents/$id'
+      preLoaderRoute: typeof IncidentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  InfrastructureRoute: InfrastructureRoute,
+  MapRoute: MapRoute,
+  IncidentsIdRoute: IncidentsIdRoute,
+  IncidentsIndexRoute: IncidentsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
