@@ -31,6 +31,7 @@ import { DETECTIONS, TYPE_META, ZONES } from "@/data/fleet";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/map", label: "GIS Map", icon: MapIcon },
+  { to: "/dashcam", label: "Dashcam", icon: Video },
   { to: "/infrastructure", label: "Infrastructure", icon: Construction },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/incidents", label: "Incidents", icon: AlertTriangle },
