@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ACCENT_CLASSES } from "@/data/fleet";
-import {
-  HAZARD_META,
-  spawnDetection,
-  stepDetections,
-  type SimDetection,
-} from "@/lib/dashcam-engine";
+import { HAZARD_META, type SimDetection } from "@/lib/dashcam-engine";
+import { analyzeFrame, type FrameDetection } from "@/lib/vision.functions";
+
+export const VISION_MODEL_LABEL = "URBAN-INTEL EDGE-VISION";
 
 export interface CaptureEvent {
   id: string;
@@ -24,6 +22,10 @@ export interface EngineStats {
   fps: number;
   latencyMs: number;
   detections: SimDetection[];
+  status: "idle" | "warming" | "live" | "error";
+  model: string;
+  error?: string;
+  scene?: string;
 }
 
 interface Props {
@@ -39,6 +41,37 @@ interface Props {
 
 const W = 1280;
 const H = 720;
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+let detSeq = 0;
+
+function clamp01(n: number) {
+  return Math.min(1, Math.max(0, n));
+}
+
+/** Maps a model detection onto the renderer's detection shape. */
+function toDetection(d: FrameDetection, now: number): SimDetection {
+  detSeq += 1;
+  const meta = HAZARD_META[d.kind];
+  const x = clamp01(d.box.x);
+  const y = clamp01(d.box.y);
+  return {
+    id: `det-${now.toString(36)}-${detSeq}`,
+    kind: d.kind,
+    ...(d.vehicle_class ? { vehicleClass: d.vehicle_class } : {}),
+    box: { x, y, w: clamp01(d.box.w) || 0.05, h: clamp01(d.box.h) || 0.05 },
+    vx: 0,
+    vy: 0,
+    confidence: Math.min(100, Math.max(0, d.confidence)),
+    ...(d.plate ? { plate: d.plate.toUpperCase().replace(/\s+/g, "") } : {}),
+    ...(typeof d.speed_kph === "number" ? { speedKph: Math.round(d.speed_kph) } : {}),
+    ttl: 999,
+    born: now,
+    ...(meta.group === "critical" ? { reticle: true } : {}),
+  };
+}
+
 
 export function Viewfinder({
   active,
@@ -162,7 +195,7 @@ export function Viewfinder({
     }
   }, []);
 
-  // Detection + render loop
+  // Real inference + render loop
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
@@ -170,12 +203,22 @@ export function Viewfinder({
     if (!canvas || !ctx) return;
 
     let raf = 0;
+    let cancelled = false;
     let frames = 0;
     let lastFpsAt = performance.now();
     let fps = 30;
-    let latency = 14;
-    let sinceSpawn = 0;
     let sincePush = 0;
+    let inferenceMs = 0;
+    let status: EngineStats["status"] = "warming";
+    let error: string | undefined;
+    let scene: string | undefined;
+    const pendingCaptures: SimDetection[] = [];
+    const seen = new Set<string>();
+
+    const grab = document.createElement("canvas");
+    grab.width = 768;
+    grab.height = 432;
+    const grabCtx = grab.getContext("2d");
 
     const capture = (d: SimDetection) => {
       const meta = HAZARD_META[d.kind];
@@ -194,6 +237,73 @@ export function Viewfinder({
       });
     };
 
+    // ---- perception loop: sample a frame, run it through the edge model ----
+    const runInference = async () => {
+      while (!cancelled) {
+        const v = videoRef.current;
+        if (!grabCtx || !v || v.readyState < 2 || !v.videoWidth) {
+          await wait(600);
+          continue;
+        }
+        const scale = Math.max(grab.width / v.videoWidth, grab.height / v.videoHeight);
+        const dw = v.videoWidth * scale;
+        const dh = v.videoHeight * scale;
+        grabCtx.fillStyle = "#000";
+        grabCtx.fillRect(0, 0, grab.width, grab.height);
+        grabCtx.drawImage(v, (grab.width - dw) / 2, (grab.height - dh) / 2, dw, dh);
+
+        const started = performance.now();
+        try {
+          const res = await analyzeFrame({
+            data: {
+              image: grab.toDataURL("image/jpeg", 0.72),
+              threshold: thresholdRef.current,
+              width: grab.width,
+              height: grab.height,
+            },
+          });
+          if (cancelled) return;
+          inferenceMs = performance.now() - started;
+
+          if (!res.ok) {
+            status = "error";
+            error = res.error;
+            const retryable = res.status === 429 || res.status >= 500;
+            await wait(retryable ? Math.max(4000, (res.retryAfterSec ?? 5) * 1000) : 9000);
+            continue;
+          }
+
+          status = "live";
+          error = undefined;
+          scene = res.scene ?? undefined;
+          const now = Date.now();
+          const next = res.detections.map((d) => toDetection(d, now));
+          detectionsRef.current = next;
+
+          for (const d of next) {
+            const meta = HAZARD_META[d.kind];
+            const key = `${d.kind}:${Math.round(d.box.x * 12)}:${Math.round(d.box.y * 12)}:${d.plate ?? ""}`;
+            if (
+              (meta.group === "defect" || meta.group === "critical") &&
+              d.confidence >= thresholdRef.current &&
+              !seen.has(key)
+            ) {
+              seen.add(key);
+              pendingCaptures.push(d);
+            }
+          }
+        } catch (err) {
+          if (cancelled) return;
+          status = "error";
+          error = err instanceof Error ? err.message : "Perception request failed.";
+          await wait(6000);
+          continue;
+        }
+        await wait(1200);
+      }
+    };
+    void runInference();
+
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const v = videoRef.current;
@@ -207,22 +317,6 @@ export function Viewfinder({
         ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
       }
 
-      sinceSpawn += 1;
-      if (sinceSpawn > 16 && detectionsRef.current.length < 9) {
-        sinceSpawn = 0;
-        const d = spawnDetection(thresholdRef.current);
-        if (d) {
-          detectionsRef.current = [...detectionsRef.current, d];
-          const meta = HAZARD_META[d.kind];
-          if (
-            (meta.group === "defect" || meta.group === "critical") &&
-            d.confidence >= thresholdRef.current
-          ) {
-            setTimeout(() => capture(d), 220);
-          }
-        }
-      }
-      detectionsRef.current = stepDetections(detectionsRef.current);
       drawBoxes(ctx, detectionsRef.current);
 
       // scanline sweep
@@ -230,27 +324,41 @@ export function Viewfinder({
       ctx.fillStyle = "rgba(52,211,153,0.05)";
       ctx.fillRect(0, sweep, W, 2);
 
+      // annotated snapshots are grabbed here, after boxes are painted
+      while (pendingCaptures.length) {
+        const d = pendingCaptures.shift();
+        if (d) capture(d);
+      }
+
       frames += 1;
       const now = performance.now();
       if (now - lastFpsAt >= 500) {
         fps = (frames * 1000) / (now - lastFpsAt);
         frames = 0;
         lastFpsAt = now;
-        latency = 12 + Math.random() * 6;
       }
       sincePush += 1;
       if (sincePush >= 12) {
         sincePush = 0;
         onStatsRef.current({
           fps: Math.round(fps * 10) / 10,
-          latencyMs: Math.round(latency * 10) / 10,
+          latencyMs: Math.round(inferenceMs * 10) / 10,
           detections: detectionsRef.current,
+          status,
+          model: VISION_MODEL_LABEL,
+          ...(error ? { error } : {}),
+          ...(scene ? { scene } : {}),
         });
       }
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      detectionsRef.current = [];
+    };
   }, [active, drawBoxes]);
+
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-950">

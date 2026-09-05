@@ -84,7 +84,13 @@ function DashcamPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [threshold, setThreshold] = useState(72);
-  const [stats, setStats] = useState<EngineStats>({ fps: 0, latencyMs: 0, detections: [] });
+  const [stats, setStats] = useState<EngineStats>({
+    fps: 0,
+    latencyMs: 0,
+    detections: [],
+    status: "idle",
+    model: "URBAN-INTEL EDGE-VISION",
+  });
   const [captures, setCaptures] = useState<CaptureEvent[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [geo, setGeo] = useState<{ lat: number; lng: number; live: boolean; accuracy?: number }>({
@@ -349,12 +355,24 @@ function DashcamPage() {
                   "pointer-events-none absolute left-3 top-3 rounded-lg px-3 py-2 font-mono text-[10px] leading-relaxed sm:text-[11px]",
                 )}
               >
-                <div className="flex items-center gap-1.5 text-emerald-400">
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5",
+                    stats.status === "error" ? "text-rose-500" : "text-emerald-400",
+                  )}
+                >
                   <Gauge className="size-3" /> INFERENCE:{" "}
-                  {stats.latencyMs ? stats.latencyMs.toFixed(1) : "0.0"} MS
+                  {stats.latencyMs ? stats.latencyMs.toFixed(0) : "—"} MS ·{" "}
+                  {stats.status === "live"
+                    ? "MODEL LOCK"
+                    : stats.status === "warming"
+                      ? "WARMING"
+                      : stats.status === "error"
+                        ? "DEGRADED"
+                        : "IDLE"}
                 </div>
                 <div className="text-zinc-300">
-                  {stats.fps.toFixed(1)} FPS @ 1080P · MODEL YOLO-EDGE-V8
+                  {stats.fps.toFixed(1)} FPS RENDER · {stats.model}
                 </div>
                 <div className="text-zinc-500">THRESH {threshold}% · OBJECTS {visible.length}</div>
               </div>
@@ -382,7 +400,17 @@ function DashcamPage() {
                   TRAFFIC BOTTLENECK — DENSITY HIGH
                 </div>
               ) : null}
+              {stats.error ? (
+                <div className="absolute inset-x-3 bottom-12 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 font-mono text-[11px] text-rose-400">
+                  PERCEPTION ERROR · {stats.error}
+                </div>
+              ) : stats.scene ? (
+                <div className="pointer-events-none absolute inset-x-3 bottom-12 truncate rounded-md border border-zinc-800/80 bg-zinc-950/70 px-3 py-1.5 font-mono text-[11px] text-zinc-400">
+                  SCENE · {stats.scene}
+                </div>
+              ) : null}
             </div>
+
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
