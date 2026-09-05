@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ACCENT_CLASSES } from "@/data/fleet";
-import {
-  HAZARD_META,
-  spawnDetection,
-  stepDetections,
-  type SimDetection,
-} from "@/lib/dashcam-engine";
+import { HAZARD_META, type SimDetection } from "@/lib/dashcam-engine";
+import { analyzeFrame, type FrameDetection } from "@/lib/vision.functions";
+
+export const VISION_MODEL_LABEL = "URBAN-INTEL EDGE-VISION";
 
 export interface CaptureEvent {
   id: string;
@@ -24,6 +22,10 @@ export interface EngineStats {
   fps: number;
   latencyMs: number;
   detections: SimDetection[];
+  status: "idle" | "warming" | "live" | "error";
+  model: string;
+  error?: string;
+  scene?: string;
 }
 
 interface Props {
@@ -39,6 +41,37 @@ interface Props {
 
 const W = 1280;
 const H = 720;
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+let detSeq = 0;
+
+function clamp01(n: number) {
+  return Math.min(1, Math.max(0, n));
+}
+
+/** Maps a model detection onto the renderer's detection shape. */
+function toDetection(d: FrameDetection, now: number): SimDetection {
+  detSeq += 1;
+  const meta = HAZARD_META[d.kind];
+  const x = clamp01(d.box.x);
+  const y = clamp01(d.box.y);
+  return {
+    id: `det-${now.toString(36)}-${detSeq}`,
+    kind: d.kind,
+    ...(d.vehicle_class ? { vehicleClass: d.vehicle_class } : {}),
+    box: { x, y, w: clamp01(d.box.w) || 0.05, h: clamp01(d.box.h) || 0.05 },
+    vx: 0,
+    vy: 0,
+    confidence: Math.min(100, Math.max(0, d.confidence)),
+    ...(d.plate ? { plate: d.plate.toUpperCase().replace(/\s+/g, "") } : {}),
+    ...(typeof d.speed_kph === "number" ? { speedKph: Math.round(d.speed_kph) } : {}),
+    ttl: 999,
+    born: now,
+    ...(meta.group === "critical" ? { reticle: true } : {}),
+  };
+}
+
 
 export function Viewfinder({
   active,
