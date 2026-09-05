@@ -400,7 +400,17 @@ function DashcamPage() {
                   TRAFFIC BOTTLENECK — DENSITY HIGH
                 </div>
               ) : null}
+              {stats.error ? (
+                <div className="absolute inset-x-3 bottom-12 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 font-mono text-[11px] text-rose-400">
+                  PERCEPTION ERROR · {stats.error}
+                </div>
+              ) : stats.scene ? (
+                <div className="pointer-events-none absolute inset-x-3 bottom-12 truncate rounded-md border border-zinc-800/80 bg-zinc-950/70 px-3 py-1.5 font-mono text-[11px] text-zinc-400">
+                  SCENE · {stats.scene}
+                </div>
+              ) : null}
             </div>
+
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
