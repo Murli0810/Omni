@@ -255,7 +255,12 @@ export function Viewfinder({
         const started = performance.now();
         try {
           const res = await analyzeFrame({
-            data: { image: grab.toDataURL("image/jpeg", 0.72), threshold: thresholdRef.current },
+            data: {
+              image: grab.toDataURL("image/jpeg", 0.72),
+              threshold: thresholdRef.current,
+              width: grab.width,
+              height: grab.height,
+            },
           });
           if (cancelled) return;
           inferenceMs = performance.now() - started;

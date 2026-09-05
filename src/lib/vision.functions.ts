@@ -21,6 +21,8 @@ const VEHICLE_CLASSES = ["car", "bus", "truck", "two_wheeler"] as const;
 const FrameInput = z.object({
   image: z.string().min(64), // data:image/jpeg;base64,...
   threshold: z.number().min(0).max(100).default(50),
+  width: z.number().positive().default(768),
+  height: z.number().positive().default(432),
 });
 
 const DetectionSchema = z.object({
@@ -66,7 +68,7 @@ Detection vocabulary (field "kind"):
 - bottleneck: dense stalled traffic / choke point
 
 Rules:
-1. box is a tight bounding box in NORMALISED coordinates of the frame: x,y = top-left, w,h = size, all 0..1. Never exceed the frame.
+1. box is a tight bounding box in PIXEL coordinates of the supplied frame, which is {width} x {height} pixels: x,y = top-left corner, w,h = width and height. Never exceed the frame bounds.
 2. confidence is your true visual certainty as a percentage 0-100. Do not inflate. Omit anything below ${"{threshold}"}.
 3. plate: only when licence-plate characters are genuinely legible. Return them uppercase with no spaces in Indian format (e.g. JH05AB1234). Set plate_confidence to your OCR certainty. If unreadable, set plate to null — never guess or invent a plate.
 4. speed_kph: rough estimate only for vehicles flagged rash_driving or hit_and_run; otherwise null.
@@ -103,13 +105,15 @@ export const analyzeFrame = createServerFn({ method: "POST" })
         model: MODEL,
         temperature: 0,
         messages: [
-          { role: "system", content: SYSTEM.replace("{threshold}", String(data.threshold)) },
+          { role: "system", content: SYSTEM.replace("{threshold}", String(data.threshold))
+              .replace("{width}", String(Math.round(data.width)))
+              .replace("{height}", String(Math.round(data.height))) },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Analyse this bus dashcam frame. Confidence threshold: ${data.threshold}%. Return strict JSON.`,
+                text: `Analyse this bus dashcam frame (${Math.round(data.width)}x${Math.round(data.height)} px). Confidence threshold: ${data.threshold}%. Box coordinates in pixels. Return strict JSON.`,
               },
               { type: "image_url", image_url: { url: data.image } },
             ],
@@ -146,9 +150,18 @@ export const analyzeFrame = createServerFn({ method: "POST" })
         ok: true as const,
         scene: parsed.scene ?? null,
         bottleneck: parsed.bottleneck ?? false,
-        detections: parsed.detections.filter(
-          (d) => d.confidence >= Math.min(data.threshold, 100) - 0.001,
-        ),
+        detections: parsed.detections
+          .filter((d) => d.confidence >= Math.min(data.threshold, 100) - 0.001)
+          .map((d) => ({
+            ...d,
+            // Models answer in pixels; normalise to 0..1 for the renderer.
+            box: {
+              x: d.box.x / data.width,
+              y: d.box.y / data.height,
+              w: d.box.w / data.width,
+              h: d.box.h / data.height,
+            },
+          })),
       };
     } catch {
       return {
