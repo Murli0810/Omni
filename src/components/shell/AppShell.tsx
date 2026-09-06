@@ -90,11 +90,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-14 items-center gap-2.5 border-b border-zinc-800/80 px-4">
           <span className="grid size-7 shrink-0 place-items-center rounded-md border border-emerald-400/30 bg-emerald-400/10 font-mono text-[11px] font-bold text-emerald-400">
-            UI
+            ◉
           </span>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold leading-tight">Urban Intel</p>
+              <p className="truncate text-[13px] font-semibold leading-tight">OMNI</p>
               <p className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
                 edge ai control
               </p>
