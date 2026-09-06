@@ -96,7 +96,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold leading-tight">OMNI</p>
               <p className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-                edge ai control
+                Onboard Municipal
+              </p>
+              <p className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+                <span>Network for Inspection</span>
               </p>
             </div>
           )}
